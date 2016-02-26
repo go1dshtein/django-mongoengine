@@ -6,6 +6,7 @@ from django.db.models.query import QuerySet as DjangoQuerySet
 from mongoengine.errors import NotUniqueError
 from mongoengine import queryset as qs
 
+
 class QueryWrapper(object):
     # XXX: copy funcs from django; now it's just wrapper
     select_related = False
@@ -13,12 +14,17 @@ class QueryWrapper(object):
 
     def __init__(self, q, ordering):
         self.q = q
-        self.order_by = ordering
+        self.order_by = ordering or []
+
 
 class QuerySet(qs.QuerySet):
     """
     A base queryset with django-required attributes
     """
+
+    def __init__(self, *args, **kwargs):
+        super(QuerySet, self).__init__(*args, **kwargs)
+        self._prefetch_related_lookups = []
 
     @property
     def model(self):
@@ -39,7 +45,6 @@ class QuerySet(qs.QuerySet):
 
     def exists(self):
         return bool(self)
-
 
     def _clone(self):
         return self.clone()
@@ -77,7 +82,8 @@ class QuerySet(qs.QuerySet):
                 pass
             six.reraise(*exc_info)
 
-
+    def iterator(self):
+        return (x for x in self)
 
 
 class QuerySetManager(qs.QuerySetManager):

@@ -40,13 +40,16 @@ from django_mongoengine.forms.documents import (
 
 
 def get_content_type_for_model(obj):
-    return apps.get_model("contenttypes.ContentType")()
+    from django.contrib.contenttypes.models import ContentType
+    obj._deferred = False
+    return ContentType.objects.get_for_model(obj, for_concrete_model=False)
 
 
 djmod = get_patched_django_module(
     "django.contrib.admin.options",
     get_content_type_for_model=get_content_type_for_model,
 )
+
 
 class BaseDocumentAdmin(djmod.BaseModelAdmin):
     """Functionality common to both ModelAdmin and InlineAdmin."""
@@ -218,7 +221,7 @@ class DocumentAdmin(BaseDocumentAdmin):
         """
         if not self.log:
             return
-        super(DocumentAdmin, self).log_addition(request, object, message)
+        djmod.ModelAdmin.log_addition(self, request, object, message)
 
 
     def log_change(self, request, object, message):
@@ -229,7 +232,7 @@ class DocumentAdmin(BaseDocumentAdmin):
         """
         if not self.log:
             return
-        super(DocumentAdmin, self).log_change(request, object, message)
+        djmod.ModelAdmin.log_change(self, request, object, message)
 
     def log_deletion(self, request, object, object_repr):
         """
@@ -240,7 +243,7 @@ class DocumentAdmin(BaseDocumentAdmin):
         """
         if not self.log:
             return
-        super(DocumentAdmin, self).log_deletion(request, object, object_repr)
+        djmod.ModelAdmin.log_deletion(self, request, object, object_repr)
 
     @csrf_protect_m
     def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
