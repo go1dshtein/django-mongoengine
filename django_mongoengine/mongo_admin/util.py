@@ -15,6 +15,10 @@ class RelationWrapper(object):
     """
     def __init__(self, document):
         self.to = document
+        self.model = document
+
+    def get_related_field(self):
+        return self.model.id
 
 
 def label_for_field(name, model, model_admin=None, return_attr=False):

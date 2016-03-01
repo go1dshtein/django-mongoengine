@@ -28,6 +28,8 @@ class DjangoField(object):
         super(DjangoField, self).__init__(*args, **kwargs)
         if self.verbose_name is None and self.name:
             self.verbose_name = self.name.replace('_', ' ')
+        self.remote_field = None
+        self.is_relation = False
 
     def formfield(self, form_class=None, choices_form_class=None, **kwargs):
         """
@@ -207,7 +209,10 @@ class DateTimeField(DjangoField):
 class ReferenceField(DjangoField):
 
     def formfield(self, **kwargs):
-        defaults = {'form_class': formfields.ReferenceField}
+        defaults = {
+            'form_class': formfields.ReferenceField,
+            'queryset': self.document_type.objects,
+        }
         defaults.update(kwargs)
         return super(ReferenceField, self).formfield(**defaults)
 
