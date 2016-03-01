@@ -28,7 +28,8 @@ from django.apps import apps
 
 from django_mongoengine.utils import force_text
 from django_mongoengine.fields import (ListField, EmbeddedDocumentField,
-                                       ReferenceField, StringField)
+                                       ReferenceField, StringField, MapField,
+                                       DictField)
 
 from django_mongoengine.mongo_admin.util import RelationWrapper
 
@@ -37,6 +38,8 @@ from django_mongoengine.utils.monkey import get_patched_django_module
 from django_mongoengine.forms.documents import (
     DocumentForm,
     inlineformset_factory, BaseInlineDocumentFormSet)
+
+from django_mongoengine.forms.widgets import Dictionary
 
 
 def get_content_type_for_model(obj):
@@ -49,6 +52,33 @@ djmod = get_patched_django_module(
     "django.contrib.admin.options",
     get_content_type_for_model=get_content_type_for_model,
 )
+
+
+class DocumentAdminChecks(djmod.ModelAdminChecks):
+    def _check_inlines_item(self, obj, model, inline, label):
+        """ Check one inline document admin. """
+        inline_label = '.'.join([inline.__module__, inline.__name__])
+
+        if not issubclass(inline, BaseDocumentAdmin):
+            return [
+                checks.Error(
+                    "'%s' must inherit from 'BaseDocumentAdmin'." % inline_label,
+                    hint=None,
+                    obj=obj.__class__,
+                    id='admin.E104',
+                )
+            ]
+        elif not hasattr(inline, 'document') or not inline.document:
+            return [
+                checks.Error(
+                    "'%s' must have a 'document' attribute." % inline_label,
+                    hint=None,
+                    obj=obj.__class__,
+                    id='admin.E105',
+                )
+            ]
+        else:
+            return []
 
 
 class BaseDocumentAdmin(djmod.BaseModelAdmin):
@@ -94,6 +124,10 @@ class BaseDocumentAdmin(djmod.BaseModelAdmin):
             else:
                 kwargs = dict({'widget': widgets.AdminTextInputWidget}, **kwargs)
             return db_field.formfield(**kwargs)
+
+        #if isinstance(db_field, (MapField, DictField)):
+        #    kwargs = dict({'widget': Dictionary}, **kwargs)
+        #    return db_field.formfield(**kwargs)
 
         # If we've got overrides for the formfield defined, use 'em. **kwargs
         # passed to formfield_for_dbfield override the defaults.
@@ -156,6 +190,7 @@ class BaseDocumentAdmin(djmod.BaseModelAdmin):
 class DocumentAdmin(BaseDocumentAdmin):
     "Encapsulates all admin options and functionality for a given model."
 
+    checks_class = DocumentAdminChecks
 
     def __init__(self, model, admin_site):
         self.model = model
@@ -169,7 +204,7 @@ class DocumentAdmin(BaseDocumentAdmin):
 # XXX: add inline init somewhere
     def _get_inline_instances(self):
         for f in six.itervalues(self.model._fields):
-            if not (isinstance(f, ListField) and isinstance(getattr(f, 'field', None), EmbeddedDocumentField)) and not isinstance(f, EmbeddedDocumentField):
+            if not (isinstance(f, (ListField, MapField)) and isinstance(getattr(f, 'field', None), EmbeddedDocumentField)) and not isinstance(f, EmbeddedDocumentField):
                 continue
             # Should only reach here if there is an embedded document...
             if f.name in self.exclude:

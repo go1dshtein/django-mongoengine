@@ -84,6 +84,7 @@ class DocumentMetaWrapper(object):
         self.model_name = self.object_name.lower()
         self.app_label = self.get_app_label()
         self.verbose_name = self.get_verbose_name()
+        self.verbose_name_plural = self.get_verbose_name_plural()
 
         # EmbeddedDocuments don't have an id field.
         try:
@@ -118,13 +119,15 @@ class DocumentMetaWrapper(object):
         except KeyError:
             return capfirst(get_verbose_name(self.object_name))
 
+    def get_verbose_name_plural(self):
+        try:
+            return capfirst(get_verbose_name(self._meta['verbose_name_plural']))
+        except KeyError:
+            return capfirst(get_verbose_name('%s' % self.verbose_name))
+
     @property
     def verbose_name_raw(self):
         return self.verbose_name
-
-    @property
-    def verbose_name_plural(self):
-        return "%ss" % self.verbose_name
 
     @property
     def pk(self):
