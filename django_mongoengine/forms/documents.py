@@ -268,6 +268,9 @@ class BaseInlineDocumentFormSet(BaseDocumentFormSet):
                  save_as_new=False, prefix=None, queryset=[], **kwargs):
         self.instance = instance
         self.save_as_new = save_as_new
+        if instance and queryset and hasattr(self.__class__, 'fk'):
+            queryset = queryset.filter(
+                **{self.__class__.fk.name: self.instance})
 
         super(BaseInlineDocumentFormSet, self).__init__(data, files, prefix=prefix, queryset=queryset, **kwargs)
 
@@ -300,13 +303,17 @@ def inlineformset_factory(document, form=DocumentForm,
                           formset=BaseInlineDocumentFormSet,
                           fields=None, exclude=None,
                           extra=1, can_order=False, can_delete=True, max_num=None,
-                          formfield_callback=None):
+                          formfield_callback=None, fk_name=None):
     """
     Returns an ``InlineFormSet`` for the given kwargs.
 
     You must provide ``fk_name`` if ``model`` has more than one ``ForeignKey``
     to ``parent_model``.
     """
+    if fk_name:
+        fk = [x for x in document._meta.fields if x.name == fk_name][0]
+    else:
+        fk = None
     kwargs = {
         'form': form,
         'formfield_callback': formfield_callback,
@@ -319,6 +326,8 @@ def inlineformset_factory(document, form=DocumentForm,
         'max_num': max_num,
     }
     FormSet = documentformset_factory(document, **kwargs)
+    if fk:
+        FormSet.fk = fk
     return FormSet
 
 

@@ -239,14 +239,12 @@ class DocumentAdmin(BaseDocumentAdmin):
             self.inline_instances.append(inline_instance)
 
     def get_changelist_form(self, request, **kwargs):
-        kwargs.setdefault("form", DocumentForm)
-        return super(DocumentAdmin, self).get_changelist_form(request, **kwargs)
-
+        # kwargs.setdefault("form", DocumentForm)
+        return djmod.ModelAdmin.get_changelist_form(self, request, **kwargs)
 
     def get_changelist_formset(self, request, **kwargs):
-        kwargs.setdefault("form", DocumentForm)
-        return super(DocumentAdmin, self).get_changelist_formset(request, **kwargs)
-
+        # kwargs.setdefault("form", DocumentForm)
+        return djmod.ModelAdmin.get_changelist_formset(self, request, **kwargs)
 
     def log_addition(self, request, object, message):
         """
@@ -257,7 +255,6 @@ class DocumentAdmin(BaseDocumentAdmin):
         if not self.log:
             return
         djmod.ModelAdmin.log_addition(self, request, object, message)
-
 
     def log_change(self, request, object, message):
         """
@@ -555,6 +552,7 @@ class InlineDocumentAdmin(BaseDocumentAdmin):
             "extra": self.extra,
             "max_num": self.max_num,
             "can_delete": self.can_delete,
+            "fk_name": self.fk_name,
         }
         defaults.update(kwargs)
         return inlineformset_factory(self.model, **defaults)
